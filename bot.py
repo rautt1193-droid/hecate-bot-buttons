@@ -3,6 +3,8 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from dotenv import load_dotenv
+from aiohttp import web
+import asyncio
 
 load_dotenv()
 bot = Bot(token=os.getenv("BOT_TOKEN"))
@@ -32,9 +34,19 @@ async def cmd_start(message: types.Message):
 async def cmd_menu(message: types.Message):
     await cmd_start(message)
 
+async def handle(request):
+    return web.Response(text="Bot is running!")
+
 async def main():
-    await dp.start_polling(bot)
+    app = web.Application()
+    app.router.add_get('/', handle)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, '0.0.0.0', int(os.environ.get('PORT', 8080)))
+    await site.start()
+    asyncio.create_task(dp.start_polling(bot))
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
